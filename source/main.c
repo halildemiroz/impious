@@ -379,7 +379,7 @@ void collisionCharacter(Character *c1) {
 void resetCharacter(Character *c1){
     if(c1->health <= 0){
         c1->health = 5;
-        currentLevelNum = 0;
+        currentLevelNum = 1;
         loadLevel(1);;
     }
 }
