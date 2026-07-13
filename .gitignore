@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+.DS_Store
+/.cache
+roadmap.md
+
 # Object files
 *.o
 *.ko
