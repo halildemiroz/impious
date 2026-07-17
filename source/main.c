@@ -118,6 +118,8 @@ void spawnEnemies(int count){
 }
 
 void updateEnemies(Character *c1){
+    static s16 prevCharY = 0;
+
     for(int i = 0; i < totalEnemiesInLevel; i++) {
         if(!levelEnemies[i].created) continue;
 
@@ -167,7 +169,7 @@ void updateEnemies(Character *c1){
             c1->charY < levelEnemies[i].y + 12 &&
             c1->charY + 12 > levelEnemies[i].y) {
             
-            if(c1->velocityY > 0 && c1->charY < levelEnemies[i].y){
+            if(prevCharY < levelEnemies[i].y){
                 levelEnemies[i].isDying = true;
                 levelEnemies[i].deathTimer = 0;
                 levelEnemies[i].frame = 4;
@@ -183,6 +185,7 @@ void updateEnemies(Character *c1){
             }
        }
     }
+    prevCharY = c1->charY;
 }
 
 void loadLevel(int levelNum){
