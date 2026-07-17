@@ -33,4 +33,6 @@ typedef struct Enemy{
     int animTimer;
     bool created;
     bool facingLeft;
+    bool isDying;
+    int deathTimer;
 }Enemy;

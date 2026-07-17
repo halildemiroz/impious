@@ -97,6 +97,7 @@ void spawnEnemies(int count){
         levelEnemies[i].created = false;
         if(!levelEnemies[i].created){
             NF_CreateSprite(0, ENEMY_FIRST_SPRITE_ID + i, 4, 4, levelEnemies[i].x - cameraX, levelEnemies[i].y);
+            NF_VflipSprite(0, ENEMY_FIRST_SPRITE_ID + i, false);
             levelEnemies[i].created = true;
         }
     }
@@ -105,6 +106,24 @@ void spawnEnemies(int count){
 void updateEnemies(Character *c1){
     for(int i = 0; i < totalEnemiesInLevel; i++) {
         if(!levelEnemies[i].created) continue;
+
+        if(levelEnemies[i].isDying){
+            levelEnemies[i].deathTimer++;
+            
+            if(levelEnemies[i].deathTimer < 10)
+                levelEnemies[i].frame = 4;
+            else if(levelEnemies[i].deathTimer < 20)
+                levelEnemies[i].frame = 5;
+            else{
+                levelEnemies[i].created = false;
+                NF_DeleteSprite(0, ENEMY_FIRST_SPRITE_ID + i);
+                continue;
+            }
+
+            NF_MoveSprite(0, ENEMY_FIRST_SPRITE_ID + i, levelEnemies[i].x - cameraX, levelEnemies[i].y);
+            NF_SpriteFrame(0, ENEMY_FIRST_SPRITE_ID + i, levelEnemies[i].frame);
+            continue;
+        }
 
         levelEnemies[i].x += levelEnemies[i].vx;
         
@@ -134,12 +153,21 @@ void updateEnemies(Character *c1){
             c1->charY < levelEnemies[i].y + 12 &&
             c1->charY + 12 > levelEnemies[i].y) {
             
-            c1->charX = 0;
-            c1->charY = 0;
-            c1->velocityX = 0;
-            c1->velocityY = 0;
-            c1->health--;
-        }
+            if(c1->velocityY > 0 && c1->charY < levelEnemies[i].y){
+                levelEnemies[i].isDying = true;
+                levelEnemies[i].deathTimer = 0;
+                levelEnemies[i].frame = 4;
+
+                c1->velocityY = -JUMP_IMPULSE;
+                c1->isGrounded = false;
+            }else{
+                c1->health--;
+                c1->charX = 0;
+                c1->charY = 0;
+                c1->velocityX = 0;
+                c1->velocityY = 0;
+            }
+       }
     }
 }
 
@@ -176,7 +204,7 @@ void loadLevel(int levelNum){
         levelCoins[1] = (Coin){200, 120, false};
         
         totalEnemiesInLevel = 1;
-        levelEnemies[0] = (Enemy){176, 128, 1, 176, 304 - 16, 0, 0, false, false};
+        levelEnemies[0] = (Enemy){176, 128, 1, 176, 304 - 16};
 
     }else if(currentLevelNum == 2){
         currentLevelData = level2;
@@ -189,7 +217,7 @@ void loadLevel(int levelNum){
         levelCoins[2] = (Coin){384, 80, false};
 
         totalEnemiesInLevel = 1;
-        levelEnemies[0] = (Enemy){144, 112, 1, 144, 208 - 16, 0, 0, false, false};
+        levelEnemies[0] = (Enemy){144, 112, 1, 144, 208 - 16};
 
     }else if(currentLevelNum == 3){
         currentLevelData = level3;
@@ -202,7 +230,7 @@ void loadLevel(int levelNum){
         levelCoins[2] = (Coin){400, 96, false};
         
         totalEnemiesInLevel = 1;
-        levelEnemies[0] = (Enemy){192, 144, 1, 192, 320 - 16, 0, 0, false, false};
+        levelEnemies[0] = (Enemy){192, 144, 1, 192, 320 - 16};
 
     }
 
