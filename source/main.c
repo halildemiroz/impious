@@ -4,6 +4,8 @@
 #include <filesystem.h>
 #include <stdio.h>
 #include "levels.h"
+#include "nds/input.h"
+#include "nds/touch.h"
 #include "structs.h"
 
 #define TILE_SIZE 16
@@ -11,10 +13,14 @@
 #define PLAYER_SPRITE_ID 0
 #define ENEMY_FIRST_SPRITE_ID 10
 #define PLATFORM_FIRST_SPRITE_ID 20
-#define JUMP_IMPULSE 10
+#define JUMP_IMPULSE 11
 #define COIN_FIRST_SPRITE_ID 4
 #define MAP_WIDTH 32
 #define MAP_HEIGHT 16
+
+const int KONAMI_CODE[10] = {KEY_UP, KEY_UP, KEY_DOWN, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_LEFT, KEY_RIGHT, KEY_B, KEY_A};
+int konamiIndex = 0;
+bool cheatMode = false;
 
 Character c1 = {0, 0, 2, 0, 0, 4, 0, 0, 5, false, false, false, false};
 
@@ -48,8 +54,16 @@ void renderWorld(Character *c1){
 }
 
 void drawHud(void){
-    printf("\x1b[1;1HCoins %d/%d  \n ", collectedCoins, totalCoinsInLevel);
-    printf("\x1b[3;1HHealth %d/%d   ", c1.health, 5);
+    printf("\x1b[1;1HCoins %d/%d     ", collectedCoins, totalCoinsInLevel);
+    printf("\x1b[2;1HLevel %d        ", currentLevelNum);
+    printf("\x1b[3;1HHealth %d/%d    ", c1.health, 5);
+
+    if (cheatMode) {
+        printf("\x1b[6;1H--- DEV CHEATS UNLOCKED ---   ");
+        printf("\x1b[8;1HLEFT COL : COINS (+Top/-Bot)  ");
+        printf("\x1b[10;1HMID COL  : LEVEL (+Top/-Bot)  ");
+        printf("\x1b[12;1HRIGHT COL: HP    (+Top/-Bot)  ");
+    }
 }
 
 void createPlatforms(Level *levelData, int levelCount){
@@ -162,8 +176,8 @@ void updateEnemies(Character *c1){
                 c1->isGrounded = false;
             }else{
                 c1->health--;
-                c1->charX = 0;
-                c1->charY = 0;
+                c1->charX = currentLevelData[0].x;
+                c1->charY = currentLevelData[0].y - 16;
                 c1->velocityX = 0;
                 c1->velocityY = 0;
             }
@@ -172,81 +186,53 @@ void updateEnemies(Character *c1){
 }
 
 void loadLevel(int levelNum){
-    for(int i = 0; i < 10; i++){
-        if (i < totalCoinsInLevel && levelCoins[i].created) {
+    for(int i = 0; i < 30; i++){
+        if(levelCoins[i].created){
             NF_DeleteSprite(0, COIN_FIRST_SPRITE_ID + i);
             levelCoins[i].created = false;
         }
-    }
-    for(int i = 0; i < 10; i++){
-        if(i < totalEnemiesInLevel && levelEnemies[i].created){
+        if(levelEnemies[i].created){
             NF_DeleteSprite(0, ENEMY_FIRST_SPRITE_ID + i);
             levelEnemies[i].created = false;
         }
     }
-        
-    currentLevelNum++;
 
-    if(currentLevelNum > 3){
+    currentLevelNum = levelNum;
+    if(currentLevelNum > 8)
         currentLevelNum = 1;
-    }
 
+    LevelConfig config = worldLevels[currentLevelNum - 1];
+
+    currentLevelData = config.platformData;
     levelDoor.width = 16;
     levelDoor.height = 16;
+    levelDoor.x = config.doorX;
+    levelDoor.y = config.doorY;
 
-    if(currentLevelNum == 1){
-        currentLevelData = level;
-        
-        totalCoinsInLevel = 2;
-        levelDoor.x = 464;
-        levelDoor.y = 128;
-        levelCoins[0] = (Coin){100, 120, false};
-        levelCoins[1] = (Coin){200, 120, false};
-        
-        totalEnemiesInLevel = 1;
-        levelEnemies[0] = (Enemy){176, 128, 1, 176, 304 - 16};
+    totalCoinsInLevel = config.coinCount;
+    for(int i = 0; i < totalCoinsInLevel; i++)
+        levelCoins[i] = config.coins[i];
 
-    }else if(currentLevelNum == 2){
-        currentLevelData = level2;
-        levelDoor.x = 448;
-        levelDoor.y = 80;
+    totalEnemiesInLevel = config.enemyCount;
+    for(int i = 0; i < totalEnemiesInLevel; i++)
+        levelEnemies[i] = config.enemies[i];
 
-        totalCoinsInLevel = 3;
-        levelCoins[0] = (Coin){40, 144, false};
-        levelCoins[1] = (Coin){176, 112, false};
-        levelCoins[2] = (Coin){384, 80, false};
+    c1.charX = currentLevelData[0].x;
+    c1.charY = currentLevelData[0].y - 16;
+    c1.velocityY = 0;
+    c1.velocityX = 0;
 
-        totalEnemiesInLevel = 1;
-        levelEnemies[0] = (Enemy){144, 112, 1, 144, 208 - 16};
-
-    }else if(currentLevelNum == 3){
-        currentLevelData = level3;
-        levelDoor.x = 464;
-        levelDoor.y = 96;
-
-        totalCoinsInLevel = 3;
-        levelCoins[0] = (Coin){32, 112, false};
-        levelCoins[1] = (Coin){120, 112, false};
-        levelCoins[2] = (Coin){400, 96, false};
-        
-        totalEnemiesInLevel = 1;
-        levelEnemies[0] = (Enemy){192, 144, 1, 192, 320 - 16};
-
-    }
+    cameraX = c1.charX - 128;
+    if(cameraX < 0) cameraX = 0;
 
     spawnCoins(totalCoinsInLevel);
     spawnEnemies(totalEnemiesInLevel);
     createPlatforms(currentLevelData, LEVEL_COUNT);
-
-
-    c1.charX = 0;
-    c1.charY = 0;
-    c1.velocityY = 0;
 }
 
 void loadNextLevel(Character *c1){
     currentLevelNum++;
-    if(currentLevelNum > 3)
+    if(currentLevelNum > 8)
         currentLevelNum = 1;
     loadLevel(currentLevelNum);
 }
@@ -421,6 +407,47 @@ void moveCharacter(Character *c1){
     int keys = keysHeld();
     int keys_pressed = keysDown();
     int speed = c1->charSpeed;
+
+    if(!cheatMode){
+        if(keys_pressed){
+            if(keys_pressed & KONAMI_CODE[konamiIndex]){
+                konamiIndex++;
+                if(konamiIndex >= 10) cheatMode = true;
+            }else{
+                konamiIndex = 0;
+                if(keys_pressed & KONAMI_CODE[0]) konamiIndex = 1;
+            }
+        }
+    }else{
+        if(keys_pressed & KEY_TOUCH){
+            touchPosition touch;
+            touchRead(&touch);
+            
+            if (touch.px < 85) { 
+                if (touch.py < 96) {
+                    collectedCoins++;
+                } else {
+                    if (collectedCoins > 0) collectedCoins--;
+                }
+            } else if (touch.px > 170) { 
+                if (touch.py < 96) {
+                    c1->health++;
+                } else {
+                    if (c1->health > 0) c1->health--;
+                }
+            } else { 
+                if (touch.py < 96) {
+                    loadNextLevel(c1);
+                } else {
+                    currentLevelNum--;
+                    if (currentLevelNum < 1) {
+                        currentLevelNum = 8; 
+                    }
+                    loadLevel(currentLevelNum);
+                }
+            }
+        }
+    }
     
     if(!c1->safetyBounce){
     if (keys & KEY_L) {
@@ -458,8 +485,8 @@ void moveCharacter(Character *c1){
             c1->safetyBounce = true;
         } else{
             c1->health--;
-            c1->charX = 0;
-            c1->charY = 0;
+            c1->charX = currentLevelData[0].x;
+            c1->charY = currentLevelData[0].y - 16;
             c1->velocityX = 0;
             c1->velocityY = 0;
             c1->safetyBounce = false;
@@ -468,7 +495,7 @@ void moveCharacter(Character *c1){
 
     coinCollision(c1);
     if(doorCollision(c1, &levelDoor)){
-        if(collectedCoins == totalCoinsInLevel)
+        if(collectedCoins >= totalCoinsInLevel)
             loadNextLevel(c1);
     }
  }
