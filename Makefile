@@ -11,11 +11,11 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # User config
 # ===========
 
-NAME		:= $(shell basename $(CURDIR))
-GAME_TITLE	:= $(shell basename $(CURDIR)).nds
-GAME_SUBTITLE	:= NightFox’s lib example
-GAME_AUTHOR	:= github.com/knightfox75/nds_nflib
-GAME_ICON	:= $(BLOCKSDS)/sys/icon.bmp
+NAME		:= impious
+GAME_TITLE	:= Impious
+GAME_SUBTITLE	:=
+GAME_AUTHOR	:= halildemiroz
+GAME_ICON	:= assets/banner3.bmp
 
 # Source code paths
 # -----------------
